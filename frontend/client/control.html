@@ -1,0 +1,97 @@
+<!-- Frontend for synthetic network
+     (tweak Quality of Service interactively) -->
+
+<h1>Quality of Service</h1>
+     
+<div id="add-flow-form">
+  <h2>
+    <abbr title="Some examples:
+HTTP traffic - *:tcp:80
+(0.0.0.0:tcp:80 is equivalent)
+
+All TCP traffic  - *:tcp
+(equivalent to *:6 and *:tcp)
+
+All traffic to 10.0.0.1 - 10.0.0.1:*
+(equivalent to just 10.0.0.1)
+
+UDP traffic on ports 1-1000 - *:udp:1-1000
+
+DNS - *:udp:53
+
+Flow labels have the form: [a-zA-Z0-9_]+
+The label “default” is reserved.">
+      Add flow
+    </abbr>
+  </h2>
+    <form>
+    <input id="flow-label" placeholder="Label" type="text">
+    <input id="flow-expr" placeholder="Flow, e.g.: *:tcp:80" type="text">
+    <input id="flow-add" type="button" value="Add" disabled>
+    <output id="flow-label-error" for="flow-label"></output>
+    <output id="flow-expr-error" for="flow-expr"></output>
+  </form>
+</div>
+
+<div id="default_link">
+  <h2>
+    <abbr title="The default flow rule applies if no other flow
+matches a packet.
+
+Flows defined by you are matched in order
+from top to bottom.">
+      Default flow
+    </abbr>
+  </h2>
+  <div class="container">
+    <div>
+      <h3>↓Ingress</h3>
+      <table id="default-ingress"></table>
+    </div>
+    <div>
+      <h3>↑Egress</h3>
+      <table id="default-egress"></table>
+    </div>
+  </div>
+</div>
+
+<div id="flows">
+</div>
+
+<div id="top">
+  <h2>
+    <abbr title="pps - Packets per second
+bps - Bits per second (on the wire)
+bpp - Average *bytes* per packet
+
+Traffic statistics are collected after conditioning.
+E.g. packets that are dropped are not included!
+(The rate limit has already been applied.)
+
+⤒: increase rate limit of flow to 120% of current usage
+⤓: decrease rate limit of flow to 80% of current usage
+
+Note: “current usage” means the rate currently shown
+to be used, not the maximum rate allowed!">
+      Active flows
+    </abbr>
+    <button id="top-sort"/>Sort by flow</button>
+  </h2>
+  <div class="container">
+    <div>
+      <h3>↓Ingress</h3>
+      <table id="top-ingress"></table>
+    </div>
+    <div>
+      <h3>↑Egress</h3>
+      <table id="top-egress"></table>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" type="text/css" href="style.css">
+
+<script src="flow.js"></script>
+<script src="client.js"></script>
+<script src="ui.js"></script>
+

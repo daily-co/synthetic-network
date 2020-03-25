@@ -1,0 +1,59 @@
+body {
+    max-width: 1400px;
+    margin: auto;
+    font-family: sans-serif;
+    padding-bottom: 20em;
+}
+.container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+.container > div {
+    margin: 0 6px;
+    padding: 4px;
+    border-radius: 4px;
+    background: #E0E7FF;
+}
+h3 {
+    margin-top: 0;
+}
+
+/* #add-flow-form { font-family: "comic sans ms"; } */
+/* #add-flow-form input { font-family: "comic sans ms"; } */
+
+#add-flow-form form {
+    margin: 0 6px;
+    padding: 4px;
+    border-radius: 4px;
+    background: #9ee9dc;
+}
+
+#add-flow-form output {
+    color: red;
+    font-style: italic;
+    margin-left: 10px;
+}
+
+#top table {
+    width: 100%;
+}
+#top table tr.flow_group td {
+    padding-top: 10px;
+    border-bottom: 1px dashed #777;
+}
+#top table tr td.quant {
+    color: #666;
+    text-align: right;
+    font-size: small;
+    font-style: italic;
+    padding-right: 1em;
+}
+#top table tr td a:link {
+    text-decoration: none;
+}
+#top table tr td a:visited {
+    color: blue;
+}
+#top .container > div {
+    background: #fff3e0;
+}
