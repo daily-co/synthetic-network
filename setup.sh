@@ -93,7 +93,7 @@ rushpid=$!
 
 # Start frontend listening on port 80
 (cd /opt/lib/frontend/;
- node index.js $qos_spec $rushpid $ingress_profile $egress_profile 80) &
+ node start.js $qos_spec $rushpid $ingress_profile $egress_profile 80) &
 
 
 # Run tests!

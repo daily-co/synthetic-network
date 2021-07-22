@@ -10,12 +10,16 @@ const fs = require('fs')
 function startFrontendCLI(argv) {
     const specpath = process.argv[2]
     const rushpid = parseInt(process.argv[3], 10)
-    var port = parseInt(process.argv[4], 10)
-    if (isNaN(port)) port = undefined
-    startFrontend(specpath, rushpid, port)
+    const ingress_profile = process.argv[4]
+    const egress_profile = process.argv[5]
+    var port = parseInt(process.argv[6], 10)
+    if (isNaN(port)) port = 8080
+    startFrontend(specpath, rushpid, ingress_profile, egress_profile, port)
 }
 
-function startFrontend(specpath, rushpid, port) {
+function startFrontend(
+    specpath, rushpid, ingress_profile, egress_profile, port
+){
     if (port == undefined) port = 8080
 
     const app = express()
@@ -44,6 +48,23 @@ function startFrontend(specpath, rushpid, port) {
             process.kill(rushpid, 'SIGHUP')
             // signal OK
             res.send('OK')
+        })
+    })
+
+    app.get('/top/ingress.profile', (req, res) => {
+        const opt = {lastModified: false, cacheControl: false}
+        res.type('application/octet-stream')
+        res.set('Cache-Control', 'no-store')
+        res.sendFile(ingress_profile, opt, (err) => {
+            if (err) throw err
+        })
+    })
+    app.get('/top/egress.profile', (req, res) => {
+        const opt = {lastModified: false, cacheControl: false}
+        res.type('application/octet-stream')
+        res.set('Cache-Control', 'no-store')
+        res.sendFile(egress_profile, opt, (err) => {
+            if (err) throw err
         })
     })
 

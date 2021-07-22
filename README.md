@@ -28,7 +28,9 @@ create-synthetic-network: synthetic-network # Create Docker network: synthetic-n
 ```
 
 ### Run Chrome using Synthetic Network in VNC
+1. ensure Docker for Mac/Windows/Linux is running
 
+2.
 ```
 $ make create-synthetic-network # You only need to do this once
 $ make run-chrome
@@ -38,6 +40,7 @@ $ make run-chrome
 📺 Point your VNC client at localhost:5901
 ...
 ```
+3. open TigerVNC and navigate to 127.0.0.1::5901
 
 #### Resolving test domains within the container
 
@@ -85,12 +88,12 @@ for (var flow in ingress_profile.flows)
 // ...
 ```
 
-See also: [`frontend/udp_rate_sine_demo.js`](https://github.com/daily-co/synthetic-network/blob/daily-rush/frontend/udp_rate_sine_demo.js)
+See also: [`frontend/udp_rate_sine_demo.js`](frontend/udp_rate_sine_demo.js)
 
 ## Further reading
 
-Check out the reports under [`doc/`](https://github.com/daily-co/synthetic-network/tree/daily-rush/doc) for details.
+Check out the reports under [`doc/`](doc) for details.
 
 The packet processing framework we use to do network conditioning can be found
-under [`rush/`](https://github.com/daily-co/synthetic-network/tree/daily-rush/rush). Its README points to a screen cast series covering its design
+under [`rush/`](rush). Its README points to a screen cast series covering its design
 and implementation.
