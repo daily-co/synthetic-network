@@ -63,7 +63,7 @@ separate quality of service settings we extended the graph as shown below.
 
 ![Synthetic network with flows](FlowsApps/page02.jpg)
 
-The new [Split](https://github.com/daily-co/synthetic-network/blob/15556d0e500197759c2499cd242aa58d2383f704/src/flow.rs#L12)
+The new [Split](https://github.com/daily-co/synthetic-network/blob/main/rush/src/flow.rs#L16-L101)
 app does the heavy lifting, parsing protocol headers and
 distributing packets to its output links accordingly. At each of its outputs
 there sits a dedicated chain of traffic conditioning apps that can be
@@ -95,9 +95,8 @@ pub struct UDP {
 
 ## Bonus: Checksums
 
-We nipped [#5](https://github.com/daily-co/synthetic-network/issues/5) in the
-bud (at least for IPv4) by reviving `checksum.rs` and adding the
-[Checksum](https://github.com/daily-co/synthetic-network/blob/15556d0e500197759c2499cd242aa58d2383f704/src/offload.rs#L13)
+We ~~nipped #5 in the bud~~ fixed a checksum offload interoperability issue with Linux (at least for IPv4) by reviving `checksum.rs` and adding the
+[Checksum](https://github.com/daily-co/synthetic-network/blob/main/rush/src/offload.rs#L15-L96)
 app.
 
 That app opportunistically detects packets where Linux omitted to calculate
@@ -110,8 +109,8 @@ To make the fruits of our labor easily consumable we added a `Makefile` to the
 top-level of the repository. That `Makefile` should make one hopefully useful
 tool for ad-hoc testing trivially available to Daily hackers: a [Chrome browser
 with configurable synthetic network exposed over
-VNC](https://github.com/daily-co/synthetic-network/pull/20). To try that you
-can:
+VNC](https://github.com/daily-co/synthetic-network#run-chrome-using-synthetic-network-in-vnc).
+To try that you can:
 
 > Setup the synthetic network (you only need to do this once)
 ```
@@ -139,7 +138,7 @@ behavior that depends on averse network conditions.
 
 ## Under the hood
 
-You can take a peek at [synth-chrome/Dockerfile](https://github.com/daily-co/synthetic-network/blob/fadd183b1edf38ee92afe714de96e84ba39c7cc3/synth-chrome/Dockerfile)
+You can take a peek at [synth-chrome/Dockerfile](https://github.com/daily-co/synthetic-network/blob/main/synth-chrome/Dockerfile)
 to see how we build the Chrome container. In a nutshell:
 
 - We build a `syntheticnet:vnc` image with VNC enabled, see `make image-vnc`.
