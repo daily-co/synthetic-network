@@ -19,7 +19,7 @@ sliders affect the obsered network activity.
 
 ## Implementation
 
-(See the [flow::Top app](https://github.com/daily-co/synthetic-network/blob/2dda5b8187e61868a92cd2d065f705b65a644509/rush/src/flow.rs#L104-L258))
+(See the [flow::Top app](https://github.com/daily-co/synthetic-network/blob/main/rush/src/flow.rs#L104-L263))
 
 The way this is implemented is that the Synthetic Network backend—our
 userspace packet forwarding engine—maintains profiles counting all the packets
@@ -114,4 +114,4 @@ for (var flow in ingress_profile.flows)
 ```
 
 For a complete example of scripting the synthetic network you can take a look
-at [frontend/udp_rate_sine_demo.js](https://github.com/daily-co/synthetic-network/blob/ee21576f7edf79f63ee220e1fcb4212126e7b668/frontend/udp_rate_sine_demo.js).
+at [frontend/udp_rate_sine_demo.js](https://github.com/daily-co/synthetic-network/blob/main/frontend/udp_rate_sine_demo.js).

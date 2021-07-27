@@ -1,22 +1,23 @@
 # Synthetic network for Docker containers
 
 We’ve added a few more apps
-([Delay](https://github.com/daily-co/synthetic-network/pull/2),
-[Jitter, and RateLimiter](https://github.com/daily-co/synthetic-network/pull/6)),
+([Latency](https://github.com/daily-co/synthetic-network/blob/main/rush/src/qos.rs#L47-L90),
+[Jitter](https://github.com/daily-co/synthetic-network/blob/main/rush/src/qos.rs#L92-L151),
+and [RateLimiter](https://github.com/daily-co/synthetic-network/blob/main/rush/src/qos.rs#L221-L319)),
 moved our playground `main()` function into a basic
-[program](https://github.com/daily-co/synthetic-network/pull/7),
+[program](https://github.com/daily-co/synthetic-network/blob/main/rush/src/synthetic_network.rs#L31-L66),
 and added a fledgling
-[frontend](https://github.com/daily-co/synthetic-network/pull/9)
+[frontend](https://github.com/daily-co/synthetic-network/tree/main/frontend)
 to control our synthetic network.
 
-We also sketched a [Dockerfile](https://github.com/daily-co/synthetic-network/pull/3)
+We also sketched a [Dockerfile](https://github.com/daily-co/synthetic-network/blob/main/Dockerfile)
 that builds an image providing a synthetic network to applications running
 within.
 
-None of this worked on the first try, and we’re integrating all those
+~~None of this worked on the first try, and we’re integrating all those
 components and debugging them on the
-[daily-frontend-integrate](https://github.com/daily-co/synthetic-network/tree/daily-frontend-integrate)
-branch. Checkout this branch to follow along the examples below.
+`daily-frontend-integrate`
+branch. Checkout this branch to follow along the examples below.~~
 
 ## The synthetic network program
 
