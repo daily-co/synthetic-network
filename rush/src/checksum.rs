@@ -64,7 +64,7 @@ unsafe fn checksum(data: &[u8], length: usize, initial: u16) -> u16 {
     let ptr = data.as_ptr();
     let size = length;
     let mut acc = initial as u64;
-    asm!("
+    core::arch::asm!("
 # Accumulative sum.
 xchg {acc:l}, {acc:h}          # Swap to convert to host-bytes order.
 1:
@@ -148,7 +148,7 @@ unsafe fn checksum(data: &[u8], length: usize, initial: u16) -> u16 {
     let size = length;
     let mut acc = initial as u64;
     // Accumulative sum
-    asm!("
+    core::arch::asm!("
 ands {mod32}, {size}, ~31
 rev16 {acc:w}, {acc:w}          // Swap initial to convert to host-bytes order.
 b.eq 2f                         // Skip 32 bytes at once block, carry flag cleared (ands)
