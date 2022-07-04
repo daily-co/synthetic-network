@@ -12,7 +12,7 @@ RUN ARCH=`uname -m` ; if [ "$ARCH" = "aarch64" ] ; then \
 
 ENV USE_VNC=yes
 
-ENV ENTRY="chromium \
+ENV ENTRY="google-chrome-stable \
     --no-sandbox --disable-gpu --no-first-run \ 
     --disable-dev-shm-usage --disable-sync \
     --autoplay-policy=no-user-gesture-required  \
