@@ -20,9 +20,10 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
 ENV PATH=${PATH}:/root/.cargo/bin
 
 # Add and build rush (synthetic network backend / userspace proxy)
-ADD rush /opt/lib/rush
-WORKDIR /opt/lib/rush
+ADD rush /opt/src/rush
+WORKDIR /opt/src/rush
 RUN cargo build --release
+RUN cp /opt/src/rush/target/release/rush /opt/lib/rush
 
 # Add frontend (synthetic network web UI)
 ADD frontend /opt/lib/frontend
