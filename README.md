@@ -65,9 +65,11 @@ It is also possible to build a minimal image with:
 ```$ make minimal```
 
 The `minimal` image doesn't have a frontend to update the user network proxy
-(`rush`) settings (see example below). Instead, one needs to use the `QOS_SPEC`
-environment variable to point to a configuration file. One way to add that
-configuration file is by creating a new image based on the `minimal` image.
+(`rush`) settings (see example below). Instead, one can create a configuration
+file and place it at `/opt/etc/synthetic_network.json` which can be done by
+creating a new container image based on the `minimal` image and copying a file
+to that particular location. If no configuration file is provided the example
+settings will be used (see `rush -h` below).
 
 ### Rush settings example
 
