@@ -81,12 +81,10 @@ egress_profile=/var/run/synthetic_network-egress.profile
 qos_spec=/opt/etc/synthetic_network.json
 mkdir -p $(dirname $qos_spec)
 
-# Set initial QoS spec. The user can provide a default QoS spec file using the
-# QOS_SPEC environment variable.
-if [ -z "$QOS_SPEC" ]; then
+# Set initial QoS spec. The user can provide a default QoS config file placing it
+# at /opt/etc/synthetic_network.json.
+if [ ! -f "$qos_spec" ]; then
     /opt/lib/rush -h | grep "Example config" | awk '{print $5}' > $qos_spec
-else
-    cp -f $QOS_SPEC $qos_spec
 fi
 
 # Start rush (userspace network proxy) bridging $dev<->veth0
