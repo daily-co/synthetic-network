@@ -84,21 +84,22 @@ mkdir -p $(dirname $qos_spec)
 # Set initial QoS spec. The user can provide a default QoS spec file using the
 # QOS_SPEC environment variable.
 if [ -z "$QOS_SPEC" ]; then
-    /opt/lib/rush/target/release/rush -h | grep "Example config" | awk '{print $5}' > $qos_spec
+    /opt/lib/rush -h | grep "Example config" | awk '{print $5}' > $qos_spec
 else
     cp -f $QOS_SPEC $qos_spec
 fi
 
 # Start rush (userspace network proxy) bridging $dev<->veth0
-/opt/lib/rush/target/release/rush \
-    $dev veth0 $qos_spec $ingress_profile $egress_profile &
+/opt/lib/rush $dev veth0 $qos_spec $ingress_profile $egress_profile &
 rushpid=$!
 # Trigger reload of $qos_spec with
 #   kill -s SIGHUP $rushpid
 
 # Start frontend listening on port 80
-(cd /opt/lib/frontend/;
- node start.js $qos_spec $rushpid $ingress_profile $egress_profile 80) &
+if [ -d "/opt/lib/frontend/" ]; then
+    (cd /opt/lib/frontend/;
+     node start.js $qos_spec $rushpid $ingress_profile $egress_profile 80) &
+fi
 
 
 # Run tests!

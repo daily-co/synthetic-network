@@ -1,0 +1,13 @@
+FROM ubuntu:22.04
+
+# Linux networking tools
+RUN apt-get update && apt-get install -y \
+    iproute2 ethtool iputils-ping iperf3 lsof tcpdump net-tools
+
+# Add rush (synthetic network backend / userspace proxy)
+COPY rush/target/release/rush /opt/lib/rush
+
+# Entrypoint / test setup
+ADD setup.sh /opt/lib/
+WORKDIR /opt/lib
+CMD ["/opt/lib/setup.sh"]

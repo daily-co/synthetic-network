@@ -21,6 +21,8 @@ help: # Print this help message
 image: # Build Docker image: syntheticnet
 image-vnc: # Build Docker image: syntheticnet:vnc
 image-chrome: image-vnc # Build Docker image: syntheticnet:chrome
+rush: # Build rush
+minimal: rush # Build Docker image: syntheticnet:minimal
 run-interactive: image synthetic-network # Debug syntheticnet container. Prereq: create-synthetic-network
 run-chrome: image-chrome synthetic-network # Run syntheticnet:chrome. Prereq: create-synthetic-network
 synthetic-network: # Specify SYNTHETIC_NETWORK (this rule is documentation)
@@ -57,6 +59,55 @@ Build `syntheticnet` image
 with VNC:
 
 ```$ make image-vnc```
+
+It is also possible to build a minimal image with:
+
+```$ make minimal```
+
+The `minimal` image doesn't have a frontend to update the user network proxy
+(`rush`) settings (see example below). Instead, one needs to use the `QOS_SPEC`
+environment variable to point to a configuration file. One way to add that
+configuration file is by creating a new image based on the `minimal` image.
+
+### Rush settings example
+
+[`rush/`](rush) is the packet processing framework we use to handle bandwidth,
+packet loss, jitter, etc. This is an example configuration:
+
+```
+{
+  "default_link": {
+    "ingress": {
+      "rate": 10000000,
+      "loss": 0,
+      "latency": 0,
+      "jitter": 0,
+      "jitter_strength": 0,
+      "reorder_packets": false
+    },
+    "egress": {
+      "rate": 10000000,
+      "loss": 0.02,
+      "latency": 0,
+      "jitter": 0,
+      "jitter_strength": 0,
+      "reorder_packets": false
+    }
+  },
+  "flows": []
+}
+```
+
+Where we define a 10Mbps ingress and egress network and a 2% packet loss on
+egress. We can also specify settings per each protocol, an example can be
+obtained running `rush` help:
+
+```
+make rush
+cd rush
+cargo build --release
+./target/release/rush -h
+```
 
 ## Scripting the Synthetic Network
 

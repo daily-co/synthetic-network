@@ -20,6 +20,12 @@ image-vnc: # Build Docker image: syntheticnet:vnc
 image-chrome: image-vnc # Build Docker image: syntheticnet:chrome
 	$(DOCKER) build -t syntheticnet:chrome synth-chrome/
 
+rush: # Build rush
+	cd rush && cargo clean && cargo build --release
+
+minimal: rush # Build Docker image: syntheticnet:minimal
+	$(DOCKER) build -t syntheticnet:minimal -f Dockerfile.minimal .
+
 run-interactive: image synthetic-network # Debug syntheticnet container. Prereq: create-synthetic-network
 	$(DOCKER) rm $(CONTAINER_NAME_INTERACTIVE) || true
 	$(DOCKER) create --privileged \
@@ -59,6 +65,6 @@ synthetic-network: # Specify SYNTHETIC_NETWORK (this rule is documentation)
 create-synthetic-network: synthetic-network # Create Docker network: synthetic-network
 	$(DOCKER) network create synthetic-network --subnet=$(SYNTHETIC_NETWORK)
 
-.PHONY: image image-vnc image-chrome \
+.PHONY: image image-vnc image-chrome minimal rush \
 run-interactive run-chrome \
 synthetic-network create-synthetic-network
