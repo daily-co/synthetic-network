@@ -8,12 +8,12 @@ use std::fmt;
 use std::result;
 use std::u8;
 
-use ast::Span;
-use hir::interval::{Interval, IntervalSet, IntervalSetIter};
-use unicode;
+use crate::ast::Span;
+use crate::hir::interval::{Interval, IntervalSet, IntervalSetIter};
+use crate::unicode;
 
-pub use hir::visitor::{visit, Visitor};
-pub use unicode::CaseFoldError;
+pub use crate::hir::visitor::{visit, Visitor};
+pub use crate::unicode::CaseFoldError;
 
 mod interval;
 pub mod literal;
@@ -123,13 +123,13 @@ impl error::Error for Error {
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        ::error::Formatter::from(self).fmt(f)
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        crate::error::Formatter::from(self).fmt(f)
     }
 }
 
 impl fmt::Display for ErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // TODO: Remove this on the next breaking semver release.
         #[allow(deprecated)]
         f.write_str(self.description())
@@ -241,9 +241,9 @@ impl Hir {
         info.set_any_anchored_start(false);
         info.set_any_anchored_end(false);
         info.set_match_empty(true);
-        info.set_literal(true);
-        info.set_alternation_literal(true);
-        Hir { kind: HirKind::Empty, info: info }
+        info.set_literal(false);
+        info.set_alternation_literal(false);
+        Hir { kind: HirKind::Empty, info }
     }
 
     /// Creates a literal HIR expression.
@@ -268,7 +268,7 @@ impl Hir {
         info.set_match_empty(false);
         info.set_literal(true);
         info.set_alternation_literal(true);
-        Hir { kind: HirKind::Literal(lit), info: info }
+        Hir { kind: HirKind::Literal(lit), info }
     }
 
     /// Creates a class HIR expression.
@@ -285,7 +285,7 @@ impl Hir {
         info.set_match_empty(false);
         info.set_literal(false);
         info.set_alternation_literal(false);
-        Hir { kind: HirKind::Class(class), info: info }
+        Hir { kind: HirKind::Class(class), info }
     }
 
     /// Creates an anchor assertion HIR expression.
@@ -318,7 +318,7 @@ impl Hir {
         if let Anchor::EndLine = anchor {
             info.set_line_anchored_end(true);
         }
-        Hir { kind: HirKind::Anchor(anchor), info: info }
+        Hir { kind: HirKind::Anchor(anchor), info }
     }
 
     /// Creates a word boundary assertion HIR expression.
@@ -334,14 +334,18 @@ impl Hir {
         info.set_any_anchored_end(false);
         info.set_literal(false);
         info.set_alternation_literal(false);
-        // A negated word boundary matches the empty string, but a normal
-        // word boundary does not!
-        info.set_match_empty(word_boundary.is_negated());
+        // A negated word boundary matches '', so that's fine. But \b does not
+        // match \b, so why do we say it can match the empty string? Well,
+        // because, if you search for \b against 'a', it will report [0, 0) and
+        // [1, 1) as matches, and both of those matches correspond to the empty
+        // string. Thus, only *certain* empty strings match \b, which similarly
+        // applies to \B.
+        info.set_match_empty(true);
         // Negated ASCII word boundaries can match invalid UTF-8.
         if let WordBoundary::AsciiNegate = word_boundary {
             info.set_always_utf8(false);
         }
-        Hir { kind: HirKind::WordBoundary(word_boundary), info: info }
+        Hir { kind: HirKind::WordBoundary(word_boundary), info }
     }
 
     /// Creates a repetition HIR expression.
@@ -368,7 +372,7 @@ impl Hir {
         info.set_match_empty(rep.is_match_empty() || rep.hir.is_match_empty());
         info.set_literal(false);
         info.set_alternation_literal(false);
-        Hir { kind: HirKind::Repetition(rep), info: info }
+        Hir { kind: HirKind::Repetition(rep), info }
     }
 
     /// Creates a group HIR expression.
@@ -385,7 +389,7 @@ impl Hir {
         info.set_match_empty(group.hir.is_match_empty());
         info.set_literal(false);
         info.set_alternation_literal(false);
-        Hir { kind: HirKind::Group(group), info: info }
+        Hir { kind: HirKind::Group(group), info }
     }
 
     /// Returns the concatenation of the given expressions.
@@ -476,7 +480,7 @@ impl Hir {
                         })
                         .any(|e| e.is_line_anchored_end()),
                 );
-                Hir { kind: HirKind::Concat(exprs), info: info }
+                Hir { kind: HirKind::Concat(exprs), info }
             }
         }
     }
@@ -538,7 +542,7 @@ impl Hir {
                     let x = info.is_alternation_literal() && e.is_literal();
                     info.set_alternation_literal(x);
                 }
-                Hir { kind: HirKind::Alternation(exprs), info: info }
+                Hir { kind: HirKind::Alternation(exprs), info }
             }
         }
     }
@@ -661,8 +665,8 @@ impl Hir {
     /// Return true if and only if the empty string is part of the language
     /// matched by this regular expression.
     ///
-    /// This includes `a*`, `a?b*`, `a{0}`, `()`, `()+`, `^$`, `a|b?`, `\B`,
-    /// but not `a`, `a+` or `\b`.
+    /// This includes `a*`, `a?b*`, `a{0}`, `()`, `()+`, `^$`, `a|b?`, `\b`
+    /// and `\B`, but not `a` or `a+`.
     pub fn is_match_empty(&self) -> bool {
         self.info.is_match_empty()
     }
@@ -671,8 +675,8 @@ impl Hir {
     /// true when this HIR expression is either itself a `Literal` or a
     /// concatenation of only `Literal`s.
     ///
-    /// For example, `f` and `foo` are literals, but `f+`, `(foo)`, `foo()`
-    /// are not (even though that contain sub-expressions that are literals).
+    /// For example, `f` and `foo` are literals, but `f+`, `(foo)`, `foo()`,
+    /// `` are not (even though that contain sub-expressions that are literals).
     pub fn is_literal(&self) -> bool {
         self.info.is_literal()
     }
@@ -682,8 +686,8 @@ impl Hir {
     /// true when this HIR expression is either itself a `Literal` or a
     /// concatenation of only `Literal`s or an alternation of only `Literal`s.
     ///
-    /// For example, `f`, `foo`, `a|b|c`, and `foo|bar|baz` are alternaiton
-    /// literals, but `f+`, `(foo)`, `foo()`
+    /// For example, `f`, `foo`, `a|b|c`, and `foo|bar|baz` are alternation
+    /// literals, but `f+`, `(foo)`, `foo()`, ``
     /// are not (even though that contain sub-expressions that are literals).
     pub fn is_alternation_literal(&self) -> bool {
         self.info.is_alternation_literal()
@@ -727,8 +731,8 @@ impl HirKind {
 /// This implementation uses constant stack space and heap space proportional
 /// to the size of the `Hir`.
 impl fmt::Display for Hir {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use hir::print::Printer;
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::hir::print::Printer;
         Printer::new().print(self, f)
     }
 }
@@ -859,7 +863,7 @@ impl ClassUnicode {
     /// Return an iterator over all ranges in this class.
     ///
     /// The iterator yields ranges in ascending order.
-    pub fn iter(&self) -> ClassUnicodeIter {
+    pub fn iter(&self) -> ClassUnicodeIter<'_> {
         ClassUnicodeIter(self.set.iter())
     }
 
@@ -972,7 +976,7 @@ pub struct ClassUnicodeRange {
 }
 
 impl fmt::Debug for ClassUnicodeRange {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let start = if !self.start.is_whitespace() && !self.start.is_control()
         {
             self.start.to_string()
@@ -1102,7 +1106,7 @@ impl ClassBytes {
     /// Return an iterator over all ranges in this class.
     ///
     /// The iterator yields ranges in ascending order.
-    pub fn iter(&self) -> ClassBytesIter {
+    pub fn iter(&self) -> ClassBytesIter<'_> {
         ClassBytesIter(self.set.iter())
     }
 
@@ -1258,7 +1262,7 @@ impl ClassBytesRange {
 }
 
 impl fmt::Debug for ClassBytesRange {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = f.debug_struct("ClassBytesRange");
         if self.start <= 0x7F {
             debug.field("start", &(self.start as char));
@@ -1496,7 +1500,7 @@ macro_rules! define_bool {
                 self.bools &= !(1 << $bit);
             }
         }
-    }
+    };
 }
 
 impl HirInfo {
@@ -2282,8 +2286,11 @@ mod tests {
 
         // We run our test on a thread with a small stack size so we can
         // force the issue more easily.
+        //
+        // NOTE(2023-03-21): See the corresponding test in 'crate::ast::tests'
+        // for context on the specific stack size chosen here.
         thread::Builder::new()
-            .stack_size(1 << 10)
+            .stack_size(16 << 10)
             .spawn(run)
             .unwrap()
             .join()

@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use std::slice;
 use std::u8;
 
-use unicode;
+use crate::unicode;
 
 // This module contains an *internal* implementation of interval sets.
 //
@@ -60,7 +60,7 @@ impl<I: Interval> IntervalSet<I> {
     /// Return an iterator over all intervals in this set.
     ///
     /// The iterator yields intervals in ascending order.
-    pub fn iter(&self) -> IntervalSetIter<I> {
+    pub fn iter(&self) -> IntervalSetIter<'_, I> {
         IntervalSetIter(self.ranges.iter())
     }
 
@@ -114,8 +114,8 @@ impl<I: Interval> IntervalSet<I> {
         // we're done.
         let drain_end = self.ranges.len();
 
-        let mut ita = (0..drain_end).into_iter();
-        let mut itb = (0..other.ranges.len()).into_iter();
+        let mut ita = 0..drain_end;
+        let mut itb = 0..other.ranges.len();
         let mut a = ita.next().unwrap();
         let mut b = itb.next().unwrap();
         loop {
@@ -322,7 +322,7 @@ impl<I: Interval> IntervalSet<I> {
 
 /// An iterator over intervals.
 #[derive(Debug)]
-pub struct IntervalSetIter<'a, I: 'a>(slice::Iter<'a, I>);
+pub struct IntervalSetIter<'a, I>(slice::Iter<'a, I>);
 
 impl<'a, I> Iterator for IntervalSetIter<'a, I> {
     type Item = &'a I;
