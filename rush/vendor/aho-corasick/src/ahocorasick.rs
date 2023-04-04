@@ -1,14 +1,14 @@
 use std::io;
 
-use automaton::Automaton;
-use buffer::Buffer;
-use dfa::{self, DFA};
-use error::Result;
-use nfa::{self, NFA};
-use packed;
-use prefilter::PrefilterState;
-use state_id::StateID;
-use Match;
+use crate::automaton::Automaton;
+use crate::buffer::Buffer;
+use crate::dfa::{self, DFA};
+use crate::error::Result;
+use crate::nfa::{self, NFA};
+use crate::packed;
+use crate::prefilter::{Prefilter, PrefilterState};
+use crate::state_id::StateID;
+use crate::Match;
 
 /// An automaton for searching multiple strings in linear time.
 ///
@@ -502,7 +502,7 @@ impl<S: StateID> AhoCorasick<S> {
     /// The closure accepts three parameters: the match found, the text of
     /// the match and a string buffer with which to write the replaced text
     /// (if any). If the closure returns `true`, then it continues to the next
-    /// match. If the closure returns false, then searching is stopped.
+    /// match. If the closure returns `false`, then searching is stopped.
     ///
     /// # Examples
     ///
@@ -524,6 +524,24 @@ impl<S: StateID> AhoCorasick<S> {
     /// });
     /// assert_eq!("0 the 2 to the 0age", result);
     /// ```
+    ///
+    /// Stopping the replacement by returning `false` (continued from the
+    /// example above):
+    ///
+    /// ```
+    /// # use aho_corasick::{AhoCorasickBuilder, MatchKind};
+    /// # let patterns = &["append", "appendage", "app"];
+    /// # let haystack = "append the app to the appendage";
+    /// # let ac = AhoCorasickBuilder::new()
+    /// #    .match_kind(MatchKind::LeftmostFirst)
+    /// #    .build(patterns);
+    /// let mut result = String::new();
+    /// ac.replace_all_with(haystack, &mut result, |mat, _, dst| {
+    ///     dst.push_str(&mat.pattern().to_string());
+    ///     mat.pattern() != 2
+    /// });
+    /// assert_eq!("0 the 2 to the appendage", result);
+    /// ```
     pub fn replace_all_with<F>(
         &self,
         haystack: &str,
@@ -536,7 +554,9 @@ impl<S: StateID> AhoCorasick<S> {
         for mat in self.find_iter(haystack) {
             dst.push_str(&haystack[last_match..mat.start()]);
             last_match = mat.end();
-            replace_with(&mat, &haystack[mat.start()..mat.end()], dst);
+            if !replace_with(&mat, &haystack[mat.start()..mat.end()], dst) {
+                break;
+            };
         }
         dst.push_str(&haystack[last_match..]);
     }
@@ -548,7 +568,7 @@ impl<S: StateID> AhoCorasick<S> {
     /// The closure accepts three parameters: the match found, the text of
     /// the match and a byte buffer with which to write the replaced text
     /// (if any). If the closure returns `true`, then it continues to the next
-    /// match. If the closure returns false, then searching is stopped.
+    /// match. If the closure returns `false`, then searching is stopped.
     ///
     /// # Examples
     ///
@@ -570,6 +590,24 @@ impl<S: StateID> AhoCorasick<S> {
     /// });
     /// assert_eq!(b"0 the 2 to the 0age".to_vec(), result);
     /// ```
+    ///
+    /// Stopping the replacement by returning `false` (continued from the
+    /// example above):
+    ///
+    /// ```
+    /// # use aho_corasick::{AhoCorasickBuilder, MatchKind};
+    /// # let patterns = &["append", "appendage", "app"];
+    /// # let haystack = b"append the app to the appendage";
+    /// # let ac = AhoCorasickBuilder::new()
+    /// #    .match_kind(MatchKind::LeftmostFirst)
+    /// #    .build(patterns);
+    /// let mut result = vec![];
+    /// ac.replace_all_with_bytes(haystack, &mut result, |mat, _, dst| {
+    ///     dst.extend(mat.pattern().to_string().bytes());
+    ///     mat.pattern() != 2
+    /// });
+    /// assert_eq!(b"0 the 2 to the appendage".to_vec(), result);
+    /// ```
     pub fn replace_all_with_bytes<F>(
         &self,
         haystack: &[u8],
@@ -582,7 +620,9 @@ impl<S: StateID> AhoCorasick<S> {
         for mat in self.find_iter(haystack) {
             dst.extend(&haystack[last_match..mat.start()]);
             last_match = mat.end();
-            replace_with(&mat, &haystack[mat.start()..mat.end()], dst);
+            if !replace_with(&mat, &haystack[mat.start()..mat.end()], dst) {
+                break;
+            };
         }
         dst.extend(&haystack[last_match..]);
     }
@@ -735,9 +775,7 @@ impl<S: StateID> AhoCorasick<S> {
     /// [`find_iter`](struct.AhoCorasick.html#method.find_iter).
     ///
     /// The closure accepts three parameters: the match found, the text of
-    /// the match and the writer with which to write the replaced text
-    /// (if any). If the closure returns `true`, then it continues to the next
-    /// match. If the closure returns false, then searching is stopped.
+    /// the match and the writer with which to write the replaced text (if any).
     ///
     /// After all matches are replaced, the writer is _not_ flushed.
     ///
@@ -967,18 +1005,6 @@ impl<S: StateID> AhoCorasick<S> {
     ///
     /// let ac = AhoCorasickBuilder::new()
     ///     .dfa(true)
-    ///     .byte_classes(false)
-    ///     .build(&["foo", "bar", "baz"]);
-    /// assert_eq!(20_768, ac.heap_bytes());
-    ///
-    /// let ac = AhoCorasickBuilder::new()
-    ///     .dfa(true)
-    ///     .byte_classes(true) // default
-    ///     .build(&["foo", "bar", "baz"]);
-    /// assert_eq!(1_248, ac.heap_bytes());
-    ///
-    /// let ac = AhoCorasickBuilder::new()
-    ///     .dfa(true)
     ///     .ascii_case_insensitive(true)
     ///     .build(&["foo", "bar", "baz"]);
     /// assert_eq!(1_248, ac.heap_bytes());
@@ -1035,6 +1061,24 @@ impl<S: StateID> Imp<S> {
             Imp::NFA(ref nfa) => nfa.pattern_count(),
             Imp::DFA(ref dfa) => dfa.pattern_count(),
         }
+    }
+
+    /// Returns the prefilter object, if one exists, for the underlying
+    /// automaton.
+    fn prefilter(&self) -> Option<&dyn Prefilter> {
+        match *self {
+            Imp::NFA(ref nfa) => nfa.prefilter(),
+            Imp::DFA(ref dfa) => dfa.prefilter(),
+        }
+    }
+
+    /// Returns true if and only if we should attempt to use a prefilter.
+    fn use_prefilter(&self) -> bool {
+        let p = match self.prefilter() {
+            None => return false,
+            Some(p) => p,
+        };
+        !p.looks_for_non_start_of_match()
     }
 
     #[inline(always)]
@@ -1113,7 +1157,7 @@ impl<S: StateID> Imp<S> {
 ///
 /// The lifetime `'b` refers to the lifetime of the haystack being searched.
 #[derive(Debug)]
-pub struct FindIter<'a, 'b, S: 'a + StateID> {
+pub struct FindIter<'a, 'b, S: StateID> {
     fsm: &'a Imp<S>,
     prestate: PrefilterState,
     haystack: &'b [u8],
@@ -1170,12 +1214,11 @@ impl<'a, 'b, S: StateID> Iterator for FindIter<'a, 'b, S> {
 ///
 /// The lifetime `'b` refers to the lifetime of the haystack being searched.
 #[derive(Debug)]
-pub struct FindOverlappingIter<'a, 'b, S: 'a + StateID> {
+pub struct FindOverlappingIter<'a, 'b, S: StateID> {
     fsm: &'a Imp<S>,
     prestate: PrefilterState,
     haystack: &'b [u8],
     pos: usize,
-    last_match_end: usize,
     state_id: S,
     match_index: usize,
 }
@@ -1195,7 +1238,6 @@ impl<'a, 'b, S: StateID> FindOverlappingIter<'a, 'b, S> {
             prestate,
             haystack,
             pos: 0,
-            last_match_end: 0,
             state_id: ac.imp.start_state(),
             match_index: 0,
         }
@@ -1241,7 +1283,7 @@ impl<'a, 'b, S: StateID> Iterator for FindOverlappingIter<'a, 'b, S> {
 ///
 /// The lifetime `'a` refers to the lifetime of the `AhoCorasick` automaton.
 #[derive(Debug)]
-pub struct StreamFindIter<'a, R, S: 'a + StateID> {
+pub struct StreamFindIter<'a, R, S: StateID> {
     it: StreamChunkIter<'a, R, S>,
 }
 
@@ -1276,7 +1318,7 @@ impl<'a, R: io::Read, S: StateID> Iterator for StreamFindIter<'a, R, S> {
 /// N.B. This does not actually implement Iterator because we need to borrow
 /// from the underlying reader. But conceptually, it's still an iterator.
 #[derive(Debug)]
-struct StreamChunkIter<'a, R, S: 'a + StateID> {
+struct StreamChunkIter<'a, R, S: StateID> {
     /// The AC automaton.
     fsm: &'a Imp<S>,
     /// State associated with this automaton's prefilter. It is a heuristic
@@ -1313,7 +1355,7 @@ struct StreamChunkIter<'a, R, S: 'a + StateID> {
 #[derive(Debug)]
 enum StreamChunk<'r> {
     /// A chunk that does not contain any matches.
-    NonMatch { bytes: &'r [u8], start: usize },
+    NonMatch { bytes: &'r [u8] },
     /// A chunk that precisely contains a match.
     Match { bytes: &'r [u8], mat: Match },
 }
@@ -1325,7 +1367,11 @@ impl<'a, R: io::Read, S: StateID> StreamChunkIter<'a, R, S> {
             "stream searching is only supported for Standard match semantics"
         );
 
-        let prestate = PrefilterState::new(ac.max_pattern_len());
+        let prestate = if ac.imp.use_prefilter() {
+            PrefilterState::new(ac.max_pattern_len())
+        } else {
+            PrefilterState::disabled()
+        };
         let buf = Buffer::new(ac.imp.max_pattern_len());
         let state_id = ac.imp.start_state();
         StreamChunkIter {
@@ -1342,7 +1388,7 @@ impl<'a, R: io::Read, S: StateID> StreamChunkIter<'a, R, S> {
         }
     }
 
-    fn next<'r>(&'r mut self) -> Option<io::Result<StreamChunk<'r>>> {
+    fn next(&mut self) -> Option<io::Result<StreamChunk>> {
         loop {
             if let Some(mut mat) = self.pending_match.take() {
                 let bytes = &self.buf.buffer()[mat.start()..mat.end()];
@@ -1353,9 +1399,8 @@ impl<'a, R: io::Read, S: StateID> StreamChunkIter<'a, R, S> {
             if self.search_pos >= self.buf.len() {
                 if let Some(end) = self.unreported() {
                     let bytes = &self.buf.buffer()[self.report_pos..end];
-                    let start = self.absolute_pos + self.report_pos;
                     self.report_pos = end;
-                    return Some(Ok(StreamChunk::NonMatch { bytes, start }));
+                    return Some(Ok(StreamChunk::NonMatch { bytes }));
                 }
                 if self.buf.len() >= self.buf.min_buffer_len() {
                     // This is the point at which we roll our buffer, which we
@@ -1378,10 +1423,9 @@ impl<'a, R: io::Read, S: StateID> StreamChunkIter<'a, R, S> {
                         // unreported bytes remaining, return them now.
                         if self.report_pos < self.buf.len() {
                             let bytes = &self.buf.buffer()[self.report_pos..];
-                            let start = self.absolute_pos + self.report_pos;
                             self.report_pos = self.buf.len();
 
-                            let chunk = StreamChunk::NonMatch { bytes, start };
+                            let chunk = StreamChunk::NonMatch { bytes };
                             return Some(Ok(chunk));
                         } else {
                             // We've reported everything, but there might still
@@ -1421,10 +1465,9 @@ impl<'a, R: io::Read, S: StateID> StreamChunkIter<'a, R, S> {
                     if self.report_pos < mat.start() {
                         let bytes =
                             &self.buf.buffer()[self.report_pos..mat.start()];
-                        let start = self.absolute_pos + self.report_pos;
                         self.report_pos = mat.start();
 
-                        let chunk = StreamChunk::NonMatch { bytes, start };
+                        let chunk = StreamChunk::NonMatch { bytes };
                         return Some(Ok(chunk));
                     }
                 }
@@ -1621,7 +1664,7 @@ impl AhoCorasickBuilder {
             // N.B. Using byte classes can actually be faster by improving
             // locality, but this only really applies for multi-megabyte
             // automata (i.e., automata that don't fit in your CPU's cache).
-            self.dfa(true).byte_classes(false);
+            self.dfa(true);
         } else if patterns.len() <= 5000 {
             self.dfa(true);
         }
@@ -1752,9 +1795,12 @@ impl AhoCorasickBuilder {
     /// Enabling this option does not change the search algorithm, but it may
     /// increase the size of the automaton.
     ///
-    /// **NOTE:** In the future, support for full Unicode case insensitivity
-    /// may be added, but ASCII case insensitivity is comparatively much
-    /// simpler to add.
+    /// **NOTE:** It is unlikely that support for Unicode case folding will
+    /// be added in the future. The ASCII case works via a simple hack to the
+    /// underlying automaton, but full Unicode handling requires a fair bit of
+    /// sophistication. If you do need Unicode handling, you might consider
+    /// using the [`regex` crate](https://docs.rs/regex) or the lower level
+    /// [`regex-automata` crate](https://docs.rs/regex-automata).
     ///
     /// # Examples
     ///
@@ -1809,7 +1855,7 @@ impl AhoCorasickBuilder {
     /// finite automaton (NFA) is used instead.
     ///
     /// The main benefit to a DFA is that it can execute searches more quickly
-    /// than a DFA (perhaps 2-4 times as fast). The main drawback is that the
+    /// than a NFA (perhaps 2-4 times as fast). The main drawback is that the
     /// DFA uses more space and can take much longer to build.
     ///
     /// Enabling this option does not change the time complexity for
@@ -1868,6 +1914,10 @@ impl AhoCorasickBuilder {
     /// overall performance.
     ///
     /// This option is enabled by default.
+    #[deprecated(
+        since = "0.7.16",
+        note = "not carrying its weight, will be always enabled, see: https://github.com/BurntSushi/aho-corasick/issues/57"
+    )]
     pub fn byte_classes(&mut self, yes: bool) -> &mut AhoCorasickBuilder {
         self.dfa_builder.byte_classes(yes);
         self
@@ -1896,6 +1946,10 @@ impl AhoCorasickBuilder {
     /// non-premultiplied form only requires 8 bits.
     ///
     /// This option is enabled by default.
+    #[deprecated(
+        since = "0.7.16",
+        note = "not carrying its weight, will be always enabled, see: https://github.com/BurntSushi/aho-corasick/issues/57"
+    )]
     pub fn premultiply(&mut self, yes: bool) -> &mut AhoCorasickBuilder {
         self.dfa_builder.premultiply(yes);
         self

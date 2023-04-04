@@ -1,9 +1,9 @@
 use std::u16;
 
-use packed::pattern::Patterns;
-use packed::rabinkarp::RabinKarp;
-use packed::teddy::{self, Teddy};
-use Match;
+use crate::packed::pattern::Patterns;
+use crate::packed::rabinkarp::RabinKarp;
+use crate::packed::teddy::{self, Teddy};
+use crate::Match;
 
 /// This is a limit placed on the total number of patterns we're willing to try
 /// and match at once. As more sophisticated algorithms are added, this number
@@ -267,13 +267,7 @@ impl Builder {
             }
             Some(ForceAlgorithm::RabinKarp) => (SearchKind::RabinKarp, 0),
         };
-        Some(Searcher {
-            config: self.config.clone(),
-            patterns,
-            rabinkarp,
-            search_kind,
-            minimum_len,
-        })
+        Some(Searcher { patterns, rabinkarp, search_kind, minimum_len })
     }
 
     fn build_teddy(&self, patterns: &Patterns) -> Option<Teddy> {
@@ -377,7 +371,6 @@ impl Default for Builder {
 /// ```
 #[derive(Clone, Debug)]
 pub struct Searcher {
-    config: Config,
     patterns: Patterns,
     rabinkarp: RabinKarp,
     search_kind: SearchKind,
