@@ -1,4 +1,18 @@
-FROM node:12.20.2
+FROM node:20.3.0-bookworm
+
+# Rust nightly
+RUN apt-get update && apt-get install -y curl build-essential
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- --default-toolchain nightly-2022-10-30 -y
+ENV PATH=${PATH}:/root/.cargo/bin
+
+# Add and build rush (synthetic network backend / userspace proxy)
+ADD rush /opt/src/rush
+WORKDIR /opt/src/rush
+RUN cargo build --release
+RUN mkdir -p /opt/lib/ && cp /opt/src/rush/target/release/rush /opt/lib/rush
+
+FROM node:20.3.0-bookworm
 
 # Linux networking tools
 RUN apt-get update && apt-get install -y \
@@ -13,17 +27,8 @@ ADD run-in-vnc.sh /opt/lib/
 ARG VNC
 RUN if [ -n "$VNC" ] ; then apt-get install -y tigervnc-standalone-server ratpoison ; else echo "No VNC for you" ; fi
 
-# Rust nightly
-RUN apt-get install -y curl build-essential
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | sh -s -- --default-toolchain nightly -y
-ENV PATH=${PATH}:/root/.cargo/bin
-
-# Add and build rush (synthetic network backend / userspace proxy)
-ADD rush /opt/src/rush
-WORKDIR /opt/src/rush
-RUN cargo build --release
-RUN cp /opt/src/rush/target/release/rush /opt/lib/rush
+# Copy rush
+COPY --from=0 /opt/lib/rush /
 
 # Add frontend (synthetic network web UI)
 ADD frontend /opt/lib/frontend
